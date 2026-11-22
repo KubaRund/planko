@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#1d372c">
   <title>PLANKO – Studio</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="gallery.css">
 </head>
 <body>
 <div id="app">
@@ -18,7 +19,7 @@
     <div class="hud"><div class="metric"><small>DESTIČKY</small><b id="count">0 <i>/ 180</i></b></div><div class="metric"><small>VÝŠKA</small><b id="height">0 <i>cm</i></b></div><div class="metric"><small>REKORD</small><b id="best">0 <i>cm</i></b></div></div>
     <div id="objective" class="objective" hidden><div class="objective-top"><strong id="objectiveTitle">Výzva</strong><span class="objective-tag" id="objectiveStatus">STAVÍŠ</span></div><p id="objectiveText"></p><div class="progress"><div id="progress"></div></div></div>
     <div class="left-tools"><div id="precisionPad" class="precision" hidden aria-label="Jemné posunutí náhledu"><button class="nudge-up" data-nudge="up" aria-label="Posunout dopředu">↑</button><button class="nudge-left" data-nudge="left" aria-label="Posunout doleva">←</button><div class="middle" title="Jemný krok">1 mm</div><button class="nudge-right" data-nudge="right" aria-label="Posunout doprava">→</button><button class="nudge-down" data-nudge="down" aria-label="Posunout dozadu">↓</button></div><button id="shake" class="shake"><span aria-hidden="true">≋</span><span id="shakeLabel">Test otřesem</span></button></div>
-    <div class="scene-tools"><div class="group"><button id="zoomIn" aria-label="Přiblížit">+</button><button id="zoomOut" aria-label="Oddálit">−</button></div><button id="fit" aria-label="Zobrazit celou stavbu">⌖</button><button id="pan" class="small" aria-label="Posouvat pohled" title="V režimu kamera: přepnout otáčení a posun">✥</button></div>
+    <div class="scene-tools"><div class="group"><button id="zoomIn" aria-label="Přiblížit">+</button><button id="zoomOut" aria-label="Oddálit">−</button></div><button id="fit" aria-label="Zobrazit celou stavbu">⌖</button><button id="topView" class="small" aria-label="Horní pohled" title="Přepnout na horní pohled">▣</button><button id="pan" class="small" aria-label="Posouvat pohled" title="V režimu kamera: přepnout otáčení a posun">✥</button></div>
     <div class="hint" id="hint">Pohybuj náhledem prstem</div><div class="toast" id="toast" role="status" aria-live="polite"></div><div id="tutorial" class="tutorial" hidden><b id="tutorialTitle"></b><span id="tutorialText"></span><button id="tutorialSkip" aria-label="Skrýt nápovědu">×</button></div>
     <div class="error" id="error" hidden><div><h2>3D zobrazení se nespustilo</h2><p>Zapni hardwarovou akceleraci nebo aktualizuj Android System WebView a zkus to znovu.</p><button id="reload" class="wide-btn">Znovu načíst</button></div></div>
   </main>

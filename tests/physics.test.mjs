@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { Vec3, Quaternion } from 'cannon-es';
 import { SIZE,STEP,BRIDGE,createPhysics,createPlank,orientation,bounds,measurements,connectedMeasurements,shakeGravity,resetGravity,GRAVITY } from '../src/physics.js';
 import { CHALLENGES,challengeById,evaluate,campaignStats,recommendedChallenge,nextChallenge,rating } from '../src/challenges.js';
+import { TEMPLATES,templatePieces,copyProfile,createProject,readProjects,projectName,galleryMarkup } from '../src/projects.js';
 
 function settle(world, seconds=4){for(let i=0;i<seconds/STEP;i++)world.step(STEP)}
 const close=(a,b,t=.025)=>assert.ok(Math.abs(a-b)<t,`${a} is not close to ${b}`);
@@ -57,3 +58,10 @@ test('campaign progression preserves earned stars and recommends the next unfini
 });
 
 test('shake applies and restores lateral acceleration',()=>{const {world}=createPhysics();shakeGravity(world,.13);assert.notEqual(world.gravity.x,0);resetGravity(world);close(world.gravity.x,0,.00001);close(world.gravity.z,0,.00001);close(world.gravity.y,-GRAVITY,.00001)});
+
+test('four starter blueprints contain valid non-overlapping planks and settle on the table',()=>{
+  for(const t of TEMPLATES){const {world}=createPhysics();const pieces=templatePieces(t.id);assert.ok(pieces.length>=10);const bodies=pieces.map(p=>createPlank(world,p));settle(world,4);const m=measurements(bodies);assert.ok(m.height>1.5,`${t.id}: ${JSON.stringify(m)}`);assert.ok(bodies.every(b=>b.position.y>=-.02&&Math.abs(b.position.x)<4&&Math.abs(b.position.z)<4),t.id);}
+});
+test('gallery contains independent validated projects and escapes names',()=>{
+  const a=createProject('<img src=x>',[],{now:100}),b=createProject('Most',[a],{now:100});assert.notEqual(a.id,b.id);const pieces=templatePieces('bridge'),p=copyProfile(pieces);p.pieces[0].quaternion[0]=99;assert.notEqual(pieces[0].quaternion[0],99);assert.equal(readProjects([a,a,b,{id:'unsafe',name:'bad'}]).length,2);assert.equal(projectName('  '),'Moje stavba');assert.ok(!galleryMarkup([a],{},a.id).includes('<img'));assert.ok(galleryMarkup([a],{},a.id).includes('&lt;img'));
+});

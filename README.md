@@ -1,4 +1,4 @@
-# PLANKO Studio · v0.3.0 🪵
+# PLANKO Studio · v0.4.0 🪵
 
 Digitální dřevěná stavebnice pro Android. Stav pomocí skutečně padajících a otáčejících se destiček, nebo projdi kariéru stavitele s osmnácti úlohami. Bez reklam, účtů a internetu.
 
@@ -23,6 +23,8 @@ Náhled při kolizi zčervená, při správné pozici zezelená. Kamera a stavě
 * Sandbox: 180 destiček, volné stavění, automatické ukládání.
 * 18 výzev s různými podmínkami, hodnocením od jedné do tří hvězd a samostatnými uloženými stavbami. Hlavní menu, průvodce první úrovní, doporučená další výzva a obrazovka výsledků.
 * Vrácení až 12 kroků v aktuální relaci včetně odebrání destičky a zátěžové zkoušky. Konstrukce se ukládají mezi relacemi.
+* Galerie až 24 samostatných pojmenovaných projektů, duplikování a čtyři fyzikální stavební předlohy: srubová věž, most, schodiště a stěna.
+* Horní pohled pro přesné umístění, zlepšené zarámování kamery na úzkém displeji a upozornění při neúspěšném ukládání.
 * 3D grafika s perspektivou, stíny a kresbou dřeva. Android používá kompatibilní projekci na Canvas bez inicializace WebGL; v prohlížeči se použije detailní WebGL, pokud je dostupné.
 * Skutečný rigid-body engine: hmotnost, setrvačnost, tření, rotace, skluz a kolize.
 * Výškové rekordy v centimetrech, fyzicky přepočtené rozměry destičky (117 × 23,4 × 7,8 mm).
@@ -44,7 +46,7 @@ Výukový úvod: **První kroky** (tři destičky) a **Křížem přes sebe**. N
 
 ## Stažení a sestavení
 
-V záložce [Actions](https://github.com/KubaRund/planko/actions) vyber poslední úspěšný běh „Sestavení Android APK“, stáhni artefakt **PLANKO-Android-v0.3.0**, rozbal ZIP a nainstaluj `app-debug.apk`. Testovací APK není publikované v Google Play. Pokud Android odmítne aktualizaci kvůli odlišnému podpisu, nejdříve si uvědom, že odinstalování smaže lokální postup; vydání v Play bude mít vlastní stabilní podpis.
+V záložce [Actions](https://github.com/KubaRund/planko/actions) vyber poslední úspěšný běh „Sestavení Android APK“, stáhni artefakt **PLANKO-Android-v0.4.0**, rozbal ZIP a nainstaluj `app-debug.apk`. Testovací APK není publikované v Google Play. Pokud Android odmítne aktualizaci kvůli odlišnému podpisu, nejdříve si uvědom, že odinstalování smaže lokální postup; vydání v Play bude mít vlastní stabilní podpis.
 
 Lokálně (Node.js 22, Android SDK 36, JDK 17 a Gradle 8.11.1):
 
@@ -75,6 +77,7 @@ Podrobný popis: [fyzika, jednotky a stabilita](docs/PHYSICS.md).
 
 ## Vývoj
 
+- **0.4.0** — galerie, samostatné projekty, duplikace, stavební předlohy, horní pohled a zlepšení kamery.
 - **0.3.0** — hlavní menu, výuková úroveň, kariéra s 18 výzvami, výsledky a hvězdy, vrácení akcí, propojenost konstrukcí, úspornější překreslování a příprava Android App Bundle pro Google Play; cílení API 36.
 - **0.2.1** — oprava startu Androidu: kompatibilní projekce bez WebGL, zotavení při pádu WebView, nativní chybová obrazovka a opakovaný start, standardní systémové lišty, testy na Android emulátoru.
 - **0.2.0** — skutečná 3D fyzika, vizuál, kompletní změna ovládání podle zpětné vazby z telefonu, katalog deseti výzev, test otřesem, nové ukládání a systémové insets.
