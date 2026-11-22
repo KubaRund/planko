@@ -120,7 +120,7 @@ function makeOBB(center,q,size=half){return new OBB(center,size.clone(),new THRE
 function updatePreview(){
   renderDirty=true;
   if(mode!=='build'){ghost.visible=false;marker.visible=false;candidate=null;return}
-  if(autoStack){const p=bodyById(autoStack);if(p&&Math.abs(p.body.position.x-aim.x)<.5&&Math.abs(p.body.position.z-aim.z)<.5)aim.y=bounds(p.body).hi.y;else autoStack=null}
+  if(autoStack){const p=bodyById(autoStack);if(p&&Math.abs(p.body.position.x-aim.x)<.5&&Math.abs(p.body.position.z-aim.z)<.5){aim.y=bounds(p.body).hi.y;if(challenge?.id==='training'){aim.x=p.body.position.x;aim.z=p.body.position.z}}else autoStack=null}
   const q=threeQ(orientation(tool,angle*Math.PI/180));const local=plankGeometry.boundingBox.clone().applyMatrix4(tempMat.makeRotationFromQuaternion(q));
   const x=aim.x,z=aim.z;
   let surface=0;
@@ -164,6 +164,7 @@ function updateHud(dt){const m=measure;let limit=challenge?.limit||MAX_PLANKS;$(
   $('physicsStatus').textContent=shakeStart!==null?'≋ Test stability':m.stable?'● Stavba v klidu':'● Probíhá simulace';$('undo').disabled=(!planks.length&&!undoStack.length)||shakeStart!==null;
   if(!challenge)return;
   const ev=evaluate(challenge,m,{shakePassed});let qualified=ev.qualified&&m.stable&&shakeStart===null;
+  if(challenge.id==='training')$('objective').dataset.measure=JSON.stringify({count:m.count,height:m.height,component:m.connected,energy:m.energy,qualified,hold});
   if(qualified)hold+=dt;else hold=0;
   $('progress').style.width=`${Math.min(100,ev.progress*100)}%`;
   $('objectiveStatus').textContent=wonNow?'SPLNĚNO':qualified?`VYDRŽ ${Math.max(0,Math.ceil(challenge.hold-hold))} S`:'STAVÍŠ';

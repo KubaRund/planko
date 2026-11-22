@@ -46,8 +46,8 @@ test('guided campaign: win first level, keep stars after reload and advance',asy
   await page.goto('/?renderer=canvas');await page.waitForFunction(()=>document.documentElement.dataset.ready==='true');
   await page.locator('#homeCampaign').click();await expect(page.locator('#objectiveTitle')).toHaveText('První kroky');
   await expect(page.locator('#tutorial')).toBeVisible();await expect(page.locator('[data-tool="stand"]')).toBeDisabled();
-  for(let i=1;i<=3;i++){await page.locator('#place').click();await expect(page.locator('#count')).toHaveText(`${i} / 8`);await expect(page.locator('#physicsStatus')).toContainText('Stavba v klidu',{timeout:15000});}
-  await expect(page.locator('#resultNext')).toBeVisible({timeout:18000});await expect(page.locator('.result-stars')).toHaveText('★★★');
+  for(let i=1;i<=3;i++){await page.locator('#place').click();await expect(page.locator('#count')).toHaveText(`${i} / 8`);await expect(page.locator('#physicsStatus')).toContainText('Stavba v klidu',{timeout:15000});console.log('Training step',i,await page.locator('#objective').getAttribute('data-measure'));}
+  try{await expect(page.locator('#resultNext')).toBeVisible({timeout:18000});}catch(e){console.log('Training final',await page.locator('#objective').getAttribute('data-measure'),await page.locator('#objectiveText').textContent());throw e;}await expect(page.locator('.result-stars')).toHaveText('★★★');
   const shot=testInfo.outputPath('campaign-result.jpg');fs.mkdirSync(path.dirname(shot),{recursive:true});await page.screenshot({path:shot,type:'jpeg',quality:90});
   await page.locator('#resultNext').click();await expect(page.locator('#objectiveTitle')).toHaveText('Křížem přes sebe');
   await page.reload();await page.waitForFunction(()=>document.documentElement.dataset.ready==='true');await expect(page.locator('.campaign-score')).toContainText('1/18');
