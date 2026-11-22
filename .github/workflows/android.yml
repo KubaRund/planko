@@ -40,5 +40,37 @@ jobs:
         run: gradle --no-daemon :app:assembleDebug
       - uses: actions/upload-artifact@v4
         with:
-          name: PLANKO-Android-v0.2.0
+          name: PLANKO-Android-v0.2.1
           path: app/build/outputs/apk/debug/app-debug.apk
+  android-smoke:
+    name: Ověření startu na Androidu 15
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: PLANKO-Android-v0.2.1
+          path: apk
+      - name: Povolit KVM pro emulátor
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Instalace a spuštění skutečného APK
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: bash tests/android-smoke.sh apk/app-debug.apk
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: PLANKO-Android-startup-test
+          path: test-results/android/
+          if-no-files-found: ignore

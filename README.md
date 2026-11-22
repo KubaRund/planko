@@ -1,4 +1,4 @@
-# PLANKO Studio · v0.2.0 🪵
+# PLANKO Studio · v0.2.1 🪵
 
 Digitální dřevěná stavebnice pro Android. Stav pomocí skutečně padajících a otáčejících se destiček, nebo zkoušej deset různých stavebních úloh. Bez reklam, účtů a internetu.
 
@@ -22,7 +22,7 @@ Náhled při kolizi zčervená, při správné pozici zezelená. Kamera a stavě
 
 * Sandbox: 180 destiček, volné stavění, automatické ukládání.
 * 10 výzev s různými podmínkami, hodnocením od jedné do tří hvězd a samostatnými uloženými stavbami.
-* 3D grafika s přirozeným světlem, stíny, texturou dřeva a lehce zaoblenými hranami.
+* 3D grafika s perspektivou, stíny a kresbou dřeva. Android používá kompatibilní projekci na Canvas bez inicializace WebGL; v prohlížeči se použije detailní WebGL, pokud je dostupné.
 * Skutečný rigid-body engine: hmotnost, setrvačnost, tření, rotace, skluz a kolize.
 * Výškové rekordy v centimetrech, fyzicky přepočtené rozměry destičky (117 × 23,4 × 7,8 mm).
 
@@ -41,7 +41,7 @@ Náhled při kolizi zčervená, při správné pozici zezelená. Kamera a stavě
 
 ## Stažení a sestavení
 
-V záložce [Actions](https://github.com/KubaRund/planko/actions) vyber poslední úspěšný běh „Sestavení Android APK“, stáhni artefakt **PLANKO-Android-v0.2.0**, rozbal ZIP a nainstaluj `app-debug.apk`. Testovací APK není publikované v Google Play.
+V záložce [Actions](https://github.com/KubaRund/planko/actions) vyber poslední úspěšný běh „Sestavení Android APK“, stáhni artefakt **PLANKO-Android-v0.2.1**, rozbal ZIP a nainstaluj `app-debug.apk`. Testovací APK není publikované v Google Play.
 
 Lokálně (Node.js 22, Android SDK 35, JDK 17 a Gradle 8.9):
 
@@ -60,18 +60,19 @@ Pokud chceš hru zkoušet v prohlížeči, po `npm run build` spusť `node tests
 
 | Část | Technologie |
 | --- | --- |
-| Android | Java Activity, FrameLayout s nativními insets a lokální WebView |
-| Grafika | Three.js, procedurální textury a WebGL stíny |
+| Android | Java Activity, lokální WebView, systémové lišty spravované Androidem; zotavení po pádu rendereru |
+| Grafika | Three.js, Canvas 3D perspektivní projekce na Androidu, WebGL v prohlížeči |
 | Fyzika | cannon-es, 120 Hz, kolizní materiály a rigid-body dynamika |
 | Náhled | Raycaster + OBB, samostatná interakční vrstva |
 | Výzvy | `src/challenges.js`, měření stabilního objektu a hvězdy |
 | Ukládání | localStorage, profil pro každý režim; starý sandbox se migruje do nové simulace |
-| Testy | Node a Chromium v mobilním rozlišení; GitHub Actions |
+| Testy | Node, Chromium s WebGL i bez WebGL, Android API 35 s instalací APK; GitHub Actions |
 
 Podrobný popis: [fyzika, jednotky a stabilita](docs/PHYSICS.md).
 
 ## Vývoj
 
+- **0.2.1** — oprava startu Androidu: kompatibilní projekce bez WebGL, zotavení při pádu WebView, nativní chybová obrazovka a opakovaný start, standardní systémové lišty, testy na Android emulátoru.
 - **0.2.0** — skutečná 3D fyzika, vizuál, kompletní změna ovládání podle zpětné vazby z telefonu, katalog deseti výzev, test otřesem, nové ukládání a systémové insets.
 - **0.1.1** — mobilní prototyp s aproximovanou fyzikou a testovacím APK.
 - **0.1.0** — první hratelné vydání.

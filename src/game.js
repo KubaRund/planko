@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { OBB } from 'three/addons/math/OBB.js';
+import { CanvasRenderer } from './canvas-renderer.js';
 import { SIZE, TABLE, MAX_PLANKS, BRIDGE, createPhysics, createPlank, orientation, bounds, measurements, awaken, shakeGravity, resetGravity, step } from './physics.js';
 import { CHALLENGES, challengeById, evaluate } from './challenges.js';
 
@@ -9,12 +10,14 @@ const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const STORAGE='planko-studio-v2', UNIT=.01, GRID=.039;
 const fmt=x=>(Math.round(x*10)/10).toLocaleString('cs-CZ',{maximumFractionDigits:1});
 let renderer;
-try { renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'}); }
-catch(error) { $('error').hidden=false; $('reload').onclick=()=>location.reload(); throw error; }
+const requestedRenderer=new URLSearchParams(location.search).get('renderer');
+try { renderer=requestedRenderer==='canvas'?new CanvasRenderer():new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'}); }
+catch(error) { console.warn('WebGL unavailable, using Canvas rendering',String(error));renderer=new CanvasRenderer(); }
 renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.65));
 renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap; renderer.shadowMap.autoUpdate=false;
 renderer.outputColorSpace=THREE.SRGBColorSpace; renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.1;
 const viewport=$('viewport');viewport.append(renderer.domElement);renderer.domElement.setAttribute('aria-label','3D stavební prostor');
+document.documentElement.dataset.graphics=renderer.isCanvas?'canvas':'webgl';
 const scene=new THREE.Scene(); scene.background=new THREE.Color('#dbe4d7'); scene.fog=new THREE.Fog('#dbe4d7',18,38);
 const camera=new THREE.PerspectiveCamera(43,1,.04,100);
 const light=new THREE.DirectionalLight('#fff0d5',3.4);light.position.set(-5,11,6);light.castShadow=true;
@@ -65,7 +68,8 @@ function fit(){const m=measurements(planks.map(p=>p.body));let center=new THREE.
   if(planks.length){const box=new THREE.Box3();for(const p of planks){const {lo,hi}=bounds(p.body);box.expandByPoint(vec(lo));box.expandByPoint(vec(hi))}box.getCenter(center);const s=box.getSize(new THREE.Vector3());span=Math.max(s.x,s.z,s.y*1.05);center.y=Math.max(.15,center.y)}target.copy(center);radius=clamp(Math.max(5.6,span/Math.tan(THREE.MathUtils.degToRad(21.5))*1.2),2.6,25);setCamera();dirty=true;
 }
 function resize(){const w=viewport.clientWidth,h=viewport.clientHeight;if(!w||!h)return;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();setCamera()}
-new ResizeObserver(resize).observe(viewport);
+if(window.ResizeObserver)new ResizeObserver(resize).observe(viewport);else window.addEventListener('resize',resize);
+if(!renderer.isCanvas)renderer.domElement.addEventListener('webglcontextlost',event=>{event.preventDefault();const old=renderer.domElement;renderer=new CanvasRenderer();renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.65));old.replaceWith(renderer.domElement);renderer.domElement.setAttribute('aria-label','3D stavební prostor');document.documentElement.dataset.graphics='canvas';resize();toast('Přepnuto na bezpečné vykreslování')});
 function toast(message){$('toast').textContent=message;$('toast').classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('show'),2300)}
 let audio=null,lastSound=0;
 function enableAudio(){if(!soundOn)return;try{audio??=new (window.AudioContext||window.webkitAudioContext)();if(audio.state==='suspended')audio.resume()}catch{}}
@@ -141,7 +145,7 @@ function nudge(dir){if(mode!=='build')return;autoStack=null;const rightX=Math.co
 function showSheet(title,content){$('sheet').innerHTML=`<div class="sheet-head"><h2>${title}</h2><button class="sheet-close" id="sheetClose" aria-label="Zavřít">×</button></div>${content}`;$('modal').classList.add('open');$('sheetClose').onclick=closeSheet;}
 function closeSheet(){$('modal').classList.remove('open')}
 function showCatalog(){const completed=CHALLENGES.filter(c=>achievements[c.id]).length;showSheet('Stavební výzvy',`<p>Vyber volné stavění nebo jednu z ${CHALLENGES.length} fyzikálních výzev. Každá stavba se ukládá zvlášť.</p><button class="sandbox-card" id="sandboxChoice"><span class="sandbox-icon">▱</span><div><b>Sandbox</b><small>Neomezené nápady · až ${MAX_PLANKS} destiček</small></div></button><h3>Výzvy · ${completed}/${CHALLENGES.length} splněno</h3><div class="card-list">${CHALLENGES.map(c=>`<button class="challenge-card ${achievements[c.id]?'done':''} ${activeId===c.id?'active':''}" data-challenge="${c.id}"><span class="challenge-icon">${achievements[c.id]?'✓':c.icon}</span><div><div class="challenge-meta"><b>${c.title}</b><span class="level">${c.level}</span></div><small>${c.description} · ${c.limit} dest.</small><span class="stars">${'★'.repeat(achievements[c.id]?.stars||0)}${'☆'.repeat(3-(achievements[c.id]?.stars||0))}</span></div></button>`).join('')}</div>`);$('sandboxChoice').onclick=()=>switchChallenge('sandbox');all('[data-challenge]').forEach(b=>b.onclick=()=>switchChallenge(b.dataset.challenge))}
-function showHelp(){showSheet('Ovládání',`<div class="help-row"><i>▱</i><div><b>Stavět</b><br>Dotkni se stolu nebo stavby a posuň náhled prstem. Destička se položí až po stisku POLOŽIT.</div></div><div class="help-row"><i>◎</i><div><b>Kamera</b><br>Přepni na Kamera, tažením otáčej. Křížek ✥ přepne posun. Dvěma prsty můžeš přibližovat v každém režimu.</div></div><div class="help-row"><i>⊞</i><div><b>Přesnost</b><br>Mřížka přichytává na 3,9 mm. Přesně zobrazí šipky po 1 mm. Otočení po 15°.</div></div><div class="help-row"><i>⊖</i><div><b>Odebrat</b><br>Vyber libovolnou stěnu destičky a potvrď odebrání.</div></div><div class="help-row"><i>≋</i><div><b>Test otřesem</b><br>Krátké zrychlení prověří stabilitu. Destičky mají skutečnou hmotnost, tření a kolize.</div></div><h3>Nastavení</h3><div class="settings-row"><span>Zvuk dřeva</span><button id="soundSwitch" class="switch ${soundOn?'on':''}">${soundOn?'Zapnuto':'Vypnuto'}</button></div><div class="settings-row"><span>Vibrace</span><button id="vibSwitch" class="switch ${vibrationOn?'on':''}">${vibrationOn?'Zapnuto':'Vypnuto'}</button></div><div class="empty-note">PLANKO Studio · verze 0.2.0</div>`);$('soundSwitch').onclick=()=>{soundOn=!soundOn;enableAudio();save();showHelp()};$('vibSwitch').onclick=()=>{vibrationOn=!vibrationOn;save();showHelp()}}
+function showHelp(){showSheet('Ovládání',`<div class="help-row"><i>▱</i><div><b>Stavět</b><br>Dotkni se stolu nebo stavby a posuň náhled prstem. Destička se položí až po stisku POLOŽIT.</div></div><div class="help-row"><i>◎</i><div><b>Kamera</b><br>Přepni na Kamera, tažením otáčej. Křížek ✥ přepne posun. Dvěma prsty můžeš přibližovat v každém režimu.</div></div><div class="help-row"><i>⊞</i><div><b>Přesnost</b><br>Mřížka přichytává na 3,9 mm. Přesně zobrazí šipky po 1 mm. Otočení po 15°.</div></div><div class="help-row"><i>⊖</i><div><b>Odebrat</b><br>Vyber libovolnou stěnu destičky a potvrď odebrání.</div></div><div class="help-row"><i>≋</i><div><b>Test otřesem</b><br>Krátké zrychlení prověří stabilitu. Destičky mají skutečnou hmotnost, tření a kolize.</div></div><h3>Nastavení</h3><div class="settings-row"><span>Zvuk dřeva</span><button id="soundSwitch" class="switch ${soundOn?'on':''}">${soundOn?'Zapnuto':'Vypnuto'}</button></div><div class="settings-row"><span>Vibrace</span><button id="vibSwitch" class="switch ${vibrationOn?'on':''}">${vibrationOn?'Zapnuto':'Vypnuto'}</button></div><div class="empty-note">PLANKO Studio · verze 0.2.1 · ${renderer.isCanvas?'bezpečná 3D projekce':'WebGL'}</div>`);$('soundSwitch').onclick=()=>{soundOn=!soundOn;enableAudio();save();showHelp()};$('vibSwitch').onclick=()=>{vibrationOn=!vibrationOn;save();showHelp()}}
 function resetPrompt(){showSheet('Nová stavba?',`<p>Vymaže aktuální konstrukci. Rekordy, hvězdy a ostatní rozehrané výzvy zůstanou zachovány.</p><button id="resetYes" class="wide-btn danger">Začít znovu</button><button id="resetNo" class="wide-btn secondary">Pokračovat ve stavbě</button>`);$('resetYes').onclick=()=>{delete profiles[activeId];loadProfile();closeSheet();save()};$('resetNo').onclick=closeSheet}
 
 function runShake(){if(!planks.length){toast('Nejdřív něco postav.');return}if(shakeStart!==null)return;shakeStart=performance.now();shakeChecking=true;hold=0;shakePassed=false;awaken(planks.map(p=>p.body));$('shake').classList.add('active');$('shakeLabel').textContent='Probíhá otřes';vibrate(35);toast('Zkouška stability')}
@@ -191,6 +195,6 @@ function frame(now){const dt=Math.min(.05,Math.max(0,(now-last)/1000));last=now;
     updateHud(hudTime);hudTime=0;
   }
   if(saveTime>1.5){if(dirty)save();saveTime=0}
-  renderer.render(scene,camera);requestAnimationFrame(frame);
+  if(renderer.isCanvas)renderer.renderGame({camera,table,grid,planks,ghost,selection,marker,supportMeshes,size:{...SIZE,table:TABLE},blocked:candidate?.blocked});else renderer.render(scene,camera);requestAnimationFrame(frame);
 }
 migrate();loadProfile();resize();setStatus();document.documentElement.dataset.ready='true';requestAnimationFrame(frame);
