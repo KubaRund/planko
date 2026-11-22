@@ -1,4 +1,4 @@
-# PLANKO · v0.1.0 🪵
+# PLANKO · v0.1.1 🪵
 
 **Stavěj. Zkoušej. Tvoř.** PLANKO je mobilní stavební hra inspirovaná jednoduchými dřevěnými destičkami v poměru 1 : 3 : 15. Bez reklam, účtů a internetu.
 
@@ -17,7 +17,7 @@
 ### Android
 
 1. Otevři záložku **Actions** a workflow „Sestavení Android APK“.
-2. Po úspěšném běhu stáhni artefakt **PLANKO-Android-v0.1**.
+2. Po úspěšném běhu stáhni artefakt **PLANKO-Android-v0.1.1**.
 3. Rozbal ZIP, otevři `app-debug.apk` na telefonu a nainstaluj aplikaci. Jde o testovací sestavení, ne publikaci v Google Play.
 
 Lokální sestavení: Android SDK 35, JDK 17 a Gradle 8.9. V kořeni projektu spusť `gradle :app:assembleDebug`. Výstup je `app/build/outputs/apk/debug/app-debug.apk`.
@@ -54,3 +54,8 @@ Nejde zatím o plnohodnotný engine tuhých těles: tření a impulzní kolize n
 - [ ] Export vlastních projektů
 
 PLANKO je nezávislý herní projekt a není oficiální aplikací žádné značky stavebnice.
+
+## Historie verzí
+
+- **0.1.1** — větší destičky na telefonu, sledování růstu věže kamerou, ochrana před překrýváním při rychlém pokládání, rozšířený test pokládání a vykreslování.
+- **0.1.0** — první hratelný prototyp, Android aplikace a automatické sestavení.
