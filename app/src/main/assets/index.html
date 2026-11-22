@@ -11,7 +11,7 @@
 <div id="app">
   <header>
     <div class="brand"><div class="logo" aria-hidden="true"><svg viewBox="0 0 40 40"><path fill="#9f7447" d="M5 22l22-10 8 4v8L13 34l-8-4z"/><path fill="#e8c696" d="M5 22l22-10 8 4-22 10z"/><path fill="#bf9461" d="M13 26l22-10v8L13 34z"/><path fill="#f6dab0" d="M5 11l8-5 23 12-8 5z"/><path fill="#b88856" d="M5 11l23 12v7L5 18z"/></svg></div><div><div class="brand-name">PLANKO</div><small>Stavební studio</small></div></div>
-    <div class="header-actions"><button id="catalog" class="mode-pill" aria-label="Výběr režimu a výzev">▦ <span id="modeName">Sandbox</span> ▾</button><button id="help" class="icon-btn" aria-label="Nápověda a nastavení">?</button></div>
+    <div class="header-actions"><button id="home" class="icon-btn" aria-label="Hlavní menu">⌂</button><button id="catalog" class="mode-pill" aria-label="Výběr režimu a výzev">▦ <span id="modeName">Sandbox</span> ▾</button><button id="help" class="icon-btn" aria-label="Nápověda a nastavení">?</button></div>
   </header>
   <main class="scene" aria-label="Stavební studio">
     <div id="viewport" aria-label="Interaktivní stavební plocha"></div>
@@ -19,7 +19,7 @@
     <div id="objective" class="objective" hidden><div class="objective-top"><strong id="objectiveTitle">Výzva</strong><span class="objective-tag" id="objectiveStatus">STAVÍŠ</span></div><p id="objectiveText"></p><div class="progress"><div id="progress"></div></div></div>
     <div class="left-tools"><div id="precisionPad" class="precision" hidden aria-label="Jemné posunutí náhledu"><button class="nudge-up" data-nudge="up" aria-label="Posunout dopředu">↑</button><button class="nudge-left" data-nudge="left" aria-label="Posunout doleva">←</button><div class="middle" title="Jemný krok">1 mm</div><button class="nudge-right" data-nudge="right" aria-label="Posunout doprava">→</button><button class="nudge-down" data-nudge="down" aria-label="Posunout dozadu">↓</button></div><button id="shake" class="shake"><span aria-hidden="true">≋</span><span id="shakeLabel">Test otřesem</span></button></div>
     <div class="scene-tools"><div class="group"><button id="zoomIn" aria-label="Přiblížit">+</button><button id="zoomOut" aria-label="Oddálit">−</button></div><button id="fit" aria-label="Zobrazit celou stavbu">⌖</button><button id="pan" class="small" aria-label="Posouvat pohled" title="V režimu kamera: přepnout otáčení a posun">✥</button></div>
-    <div class="hint" id="hint">Pohybuj náhledem prstem</div><div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <div class="hint" id="hint">Pohybuj náhledem prstem</div><div class="toast" id="toast" role="status" aria-live="polite"></div><div id="tutorial" class="tutorial" hidden><b id="tutorialTitle"></b><span id="tutorialText"></span><button id="tutorialSkip" aria-label="Skrýt nápovědu">×</button></div>
     <div class="error" id="error" hidden><div><h2>3D zobrazení se nespustilo</h2><p>Zapni hardwarovou akceleraci nebo aktualizuj Android System WebView a zkus to znovu.</p><button id="reload" class="wide-btn">Znovu načíst</button></div></div>
   </main>
   <section id="dock" class="dock" aria-label="Ovládání stavby">

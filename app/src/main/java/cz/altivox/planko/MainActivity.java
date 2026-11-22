@@ -6,6 +6,8 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
+import android.view.WindowInsets;
+import android.view.WindowInsetsController;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
@@ -30,17 +32,28 @@ public class MainActivity extends Activity {
 
     @Override public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // The native theme opts out of forced edge-to-edge on Android 15.
-        // Let Android reserve the status/navigation bars instead of padding a WebView.
+        // Android 16 enforces edge-to-edge; inset the native parent, not the HTML viewport.
         root = new FrameLayout(this);
         root.setBackgroundColor(CHROME);
-        root.setFitsSystemWindows(true);
+        root.setFitsSystemWindows(Build.VERSION.SDK_INT < 30);
+        if (Build.VERSION.SDK_INT >= 30) {
+            getWindow().setDecorFitsSystemWindows(false);
+            root.setOnApplyWindowInsetsListener((view,insets) -> {
+                android.graphics.Insets safe = insets.getInsets(WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout());
+                view.setPadding(safe.left,safe.top,safe.right,safe.bottom);
+                return WindowInsets.CONSUMED;
+            });
+        }
         setContentView(root);
         try {
-            if (Build.VERSION.SDK_INT >= 30) getWindow().setDecorFitsSystemWindows(true);
+            if (Build.VERSION.SDK_INT >= 30) {
+                WindowInsetsController controller = getWindow().getInsetsController();
+                if (controller != null) controller.setSystemBarsAppearance(0, WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS | WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS);
+            }
             getWindow().setStatusBarColor(CHROME);
             getWindow().setNavigationBarColor(CHROME);
             startGame(false);
+            root.requestApplyInsets();
         } catch (RuntimeException error) {
             Log.e(TAG, "ACTIVITY_START_FAILED", error);
             showNativeError();
@@ -171,6 +184,6 @@ public class MainActivity extends Activity {
     }
 
     @Override protected void onPause() { if (webView != null) webView.onPause(); super.onPause(); }
-    @Override protected void onResume() { super.onResume(); if (webView != null) webView.onResume(); }
+    @Override protected void onResume() { super.onResume(); if (webView != null) webView.onResume(); if (root != null) root.requestApplyInsets(); }
     @Override protected void onDestroy() { closing = true; disposeView(); super.onDestroy(); }
 }

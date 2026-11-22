@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Vec3, Quaternion } from 'cannon-es';
-import { SIZE,STEP,BRIDGE,createPhysics,createPlank,orientation,bounds,measurements,shakeGravity,resetGravity,GRAVITY } from '../src/physics.js';
-import { CHALLENGES,challengeById,evaluate } from '../src/challenges.js';
+import { SIZE,STEP,BRIDGE,createPhysics,createPlank,orientation,bounds,measurements,connectedMeasurements,shakeGravity,resetGravity,GRAVITY } from '../src/physics.js';
+import { CHALLENGES,challengeById,evaluate,campaignStats,recommendedChallenge,nextChallenge,rating } from '../src/challenges.js';
 
 function settle(world, seconds=4){for(let i=0;i<seconds/STEP;i++)world.step(STEP)}
 const close=(a,b,t=.025)=>assert.ok(Math.abs(a-b)<t,`${a} is not close to ${b}`);
@@ -38,10 +38,17 @@ test('two real wooden beams can bridge the platform gap',()=>{
   const m=measurements([p1,p2]);assert.equal(m.bridge,2);assert.ok(m.stable);assert.equal(evaluate(challengeById('bridge'),m).qualified,true);
 });
 
-test('ten distinct challenge definitions validate all their requirements',()=>{
-  assert.equal(CHALLENGES.length,10);assert.equal(new Set(CHALLENGES.map(c=>c.id)).size,10);
-  for(const challenge of CHALLENGES){const m={count:challenge.min,height:challenge.height||0,span:challenge.span||0,bridge:challenge.bridge||0,foundation:challenge.foundation||0,stable:true};assert.equal(evaluate(challenge,m,{shakePassed:true}).qualified,true,challenge.id);assert.equal(evaluate(challenge,{...m,count:0},{shakePassed:true}).qualified,false,challenge.id);}
+test('eighteen distinct challenge definitions validate all their requirements',()=>{
+  assert.equal(CHALLENGES.length,18);assert.equal(new Set(CHALLENGES.map(c=>c.id)).size,18);
+  for(const challenge of CHALLENGES){const m={count:challenge.min,height:challenge.height||0,span:challenge.span||0,bridge:challenge.bridge||0,foundation:challenge.minFoundation||challenge.foundation||0,stable:true};assert.equal(evaluate(challenge,m,{shakePassed:true}).qualified,true,challenge.id);assert.equal(evaluate(challenge,{...m,count:0},{shakePassed:true}).qualified,false,challenge.id);}
   const m={count:12,height:21,span:18,bridge:0,foundation:3};assert.equal(evaluate(challengeById('quake'),m,{shakePassed:false}).qualified,false);assert.equal(evaluate(challengeById('quake'),m,{shakePassed:true}).qualified,true);
+});
+
+test('disconnected pieces cannot pass connected building challenges',()=>{
+  const {world}=createPhysics();const pieces=[createPlank(world,{x:-2,y:.1}),createPlank(world,{x:2,y:.1}),createPlank(world,{x:0,y:.1,z:2})];settle(world,3);const m=measurements(pieces);m.connected=connectedMeasurements(pieces);assert.equal(m.connected.componentCount,1);assert.equal(evaluate(challengeById('training'),m).qualified,false);
+});
+test('campaign progression preserves earned stars and recommends the next unfinished level',()=>{
+  const achievements={training:{stars:3},cross:{stars:2}};assert.deepEqual(campaignStats(achievements),{completed:2,stars:5,maxStars:54});assert.equal(recommendedChallenge(achievements).id,'first');assert.equal(nextChallenge('training').id,'cross');assert.equal(rating(challengeById('training'),3),3);
 });
 
 test('shake applies and restores lateral acceleration',()=>{const {world}=createPhysics();shakeGravity(world,.13);assert.notEqual(world.gravity.x,0);resetGravity(world);close(world.gravity.x,0,.00001);close(world.gravity.z,0,.00001);close(world.gravity.y,-GRAVITY,.00001)});

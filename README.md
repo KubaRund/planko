@@ -1,6 +1,6 @@
-# PLANKO Studio · v0.2.1 🪵
+# PLANKO Studio · v0.3.0 🪵
 
-Digitální dřevěná stavebnice pro Android. Stav pomocí skutečně padajících a otáčejících se destiček, nebo zkoušej deset různých stavebních úloh. Bez reklam, účtů a internetu.
+Digitální dřevěná stavebnice pro Android. Stav pomocí skutečně padajících a otáčejících se destiček, nebo projdi kariéru stavitele s osmnácti úlohami. Bez reklam, účtů a internetu.
 
 ## Nové ovládání
 
@@ -21,12 +21,15 @@ Náhled při kolizi zčervená, při správné pozici zezelená. Kamera a stavě
 ## Obsah
 
 * Sandbox: 180 destiček, volné stavění, automatické ukládání.
-* 10 výzev s různými podmínkami, hodnocením od jedné do tří hvězd a samostatnými uloženými stavbami.
+* 18 výzev s různými podmínkami, hodnocením od jedné do tří hvězd a samostatnými uloženými stavbami. Hlavní menu, průvodce první úrovní, doporučená další výzva a obrazovka výsledků.
+* Vrácení až 12 kroků v aktuální relaci včetně odebrání destičky a zátěžové zkoušky. Konstrukce se ukládají mezi relacemi.
 * 3D grafika s perspektivou, stíny a kresbou dřeva. Android používá kompatibilní projekci na Canvas bez inicializace WebGL; v prohlížeči se použije detailní WebGL, pokud je dostupné.
 * Skutečný rigid-body engine: hmotnost, setrvačnost, tření, rotace, skluz a kolize.
 * Výškové rekordy v centimetrech, fyzicky přepočtené rozměry destičky (117 × 23,4 × 7,8 mm).
 
 ### Výzvy
+
+Výukový úvod: **První kroky** (tři destičky) a **Křížem přes sebe**. Následuje původních deset úloh a šest bonusových: Dřevěná zeď, Pevná platforma, Most pro náklad, Mikrověž, Odolná pevnost a Mrakodrap. Nové konstrukční úlohy zohledňují i propojenost destiček, aby nestačilo rozložit samostatné kousky po stole.
 
 1. První konstrukce — 5 cm, alespoň 4 destičky.
 2. Věž 20 — stabilní výška 20 cm.
@@ -41,18 +44,18 @@ Náhled při kolizi zčervená, při správné pozici zezelená. Kamera a stavě
 
 ## Stažení a sestavení
 
-V záložce [Actions](https://github.com/KubaRund/planko/actions) vyber poslední úspěšný běh „Sestavení Android APK“, stáhni artefakt **PLANKO-Android-v0.2.1**, rozbal ZIP a nainstaluj `app-debug.apk`. Testovací APK není publikované v Google Play.
+V záložce [Actions](https://github.com/KubaRund/planko/actions) vyber poslední úspěšný běh „Sestavení Android APK“, stáhni artefakt **PLANKO-Android-v0.3.0**, rozbal ZIP a nainstaluj `app-debug.apk`. Testovací APK není publikované v Google Play. Pokud Android odmítne aktualizaci kvůli odlišnému podpisu, nejdříve si uvědom, že odinstalování smaže lokální postup; vydání v Play bude mít vlastní stabilní podpis.
 
-Lokálně (Node.js 22, Android SDK 35, JDK 17 a Gradle 8.9):
+Lokálně (Node.js 22, Android SDK 36, JDK 17 a Gradle 8.11.1):
 
 ```sh
 npm install
 npm test
 npm run build
-gradle :app:assembleDebug
+gradle :app:assembleDebug :app:bundleRelease
 ```
 
-Výstup: `app/build/outputs/apk/debug/app-debug.apk`. Sestavený herní balíček se vkládá do APK; runtime nemá internetové oprávnění a závislosti se nestahují za běhu.
+Výstup: `app/build/outputs/apk/debug/app-debug.apk` a nepodepsaný release AAB. Sestavený herní balíček se vkládá do APK; runtime nemá internetové oprávnění a závislosti se nestahují za běhu. [Plán vydání na Google Play](docs/GOOGLE_PLAY.md).
 
 Pokud chceš hru zkoušet v prohlížeči, po `npm run build` spusť `node tests/serve.mjs` a otevři `http://127.0.0.1:4173`. Testy ovládání: `npx playwright install chromium`, `npm run test:ui`.
 
@@ -66,12 +69,13 @@ Pokud chceš hru zkoušet v prohlížeči, po `npm run build` spusť `node tests
 | Náhled | Raycaster + OBB, samostatná interakční vrstva |
 | Výzvy | `src/challenges.js`, měření stabilního objektu a hvězdy |
 | Ukládání | localStorage, profil pro každý režim; starý sandbox se migruje do nové simulace |
-| Testy | Node, Chromium s WebGL i bez WebGL, Android API 35 s instalací APK; GitHub Actions |
+| Testy | Node, Chromium s WebGL i bez WebGL, Android API 35 a 36 s instalací APK; GitHub Actions |
 
 Podrobný popis: [fyzika, jednotky a stabilita](docs/PHYSICS.md).
 
 ## Vývoj
 
+- **0.3.0** — hlavní menu, výuková úroveň, kariéra s 18 výzvami, výsledky a hvězdy, vrácení akcí, propojenost konstrukcí, úspornější překreslování a příprava Android App Bundle pro Google Play; cílení API 36.
 - **0.2.1** — oprava startu Androidu: kompatibilní projekce bez WebGL, zotavení při pádu WebView, nativní chybová obrazovka a opakovaný start, standardní systémové lišty, testy na Android emulátoru.
 - **0.2.0** — skutečná 3D fyzika, vizuál, kompletní změna ovládání podle zpětné vazby z telefonu, katalog deseti výzev, test otřesem, nové ukládání a systémové insets.
 - **0.1.1** — mobilní prototyp s aproximovanou fyzikou a testovacím APK.

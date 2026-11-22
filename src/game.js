@@ -2,8 +2,9 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { OBB } from 'three/addons/math/OBB.js';
 import { CanvasRenderer } from './canvas-renderer.js';
-import { SIZE, TABLE, MAX_PLANKS, BRIDGE, createPhysics, createPlank, orientation, bounds, measurements, awaken, shakeGravity, resetGravity, step } from './physics.js';
-import { CHALLENGES, challengeById, evaluate } from './challenges.js';
+import { SIZE, TABLE, MAX_PLANKS, BRIDGE, createPhysics, createPlank, orientation, bounds, measurements, connectedMeasurements, awaken, shakeGravity, resetGravity, step } from './physics.js';
+import { CHALLENGES, challengeById, nextChallenge, recommendedChallenge, campaignStats, rating, evaluate } from './challenges.js';
+import { homeMarkup, resultMarkup } from './campaign-ui.js';
 
 const $=id=>document.getElementById(id), all=s=>[...document.querySelectorAll(s)];
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
@@ -61,8 +62,9 @@ let globalBest=+stored.globalBest||0, snap=stored.snap!==false, precision=!!stor
 let activeId=challengeById(stored.activeId)?stored.activeId:'sandbox';
 let challenge=challengeById(activeId), world, statics=[], planks=[], serial=0, mode='build', tool='flat', angle=0, selected=null, aim={x:0,z:0,y:0}, autoStack=null, candidate=null, panCamera=false;
 let yaw=.67,pitch=.57,radius=6.1,target=new THREE.Vector3(0,.18,0),dirty=true,shakeStart=null,shakeChecking=false,shakePassed=false,hold=0,wonNow=false,toastTimer,measure={count:0,height:0,span:0,stable:true},lastRecordTime=0;
+let undoStack=[], tutorialHidden=false, renderDirty=true, lastRender=0, lastMoving=true;
 
-function setCamera(){camera.position.set(target.x+Math.sin(yaw)*Math.cos(pitch)*radius,target.y+Math.sin(pitch)*radius,target.z+Math.cos(yaw)*Math.cos(pitch)*radius);camera.lookAt(target);camera.updateMatrixWorld();}
+function setCamera(){camera.position.set(target.x+Math.sin(yaw)*Math.cos(pitch)*radius,target.y+Math.sin(pitch)*radius,target.z+Math.cos(yaw)*Math.cos(pitch)*radius);camera.lookAt(target);camera.updateMatrixWorld();renderDirty=true;}
 function zoom(f){radius=clamp(radius*f,1.25,25);setCamera()}
 function fit(){const m=measurements(planks.map(p=>p.body));let center=new THREE.Vector3(0,.17,0),span=0;
   if(planks.length){const box=new THREE.Box3();for(const p of planks){const {lo,hi}=bounds(p.body);box.expandByPoint(vec(lo));box.expandByPoint(vec(hi))}box.getCenter(center);const s=box.getSize(new THREE.Vector3());span=Math.max(s.x,s.z,s.y*1.05);center.y=Math.max(.15,center.y)}target.copy(center);radius=clamp(Math.max(5.6,span/Math.tan(THREE.MathUtils.degToRad(21.5))*1.2),2.6,25);setCamera();dirty=true;
@@ -76,6 +78,7 @@ function enableAudio(){if(!soundOn)return;try{audio??=new (window.AudioContext||
 function play(freq=165,volume=.045,duration=.065){if(!audio||!soundOn||performance.now()-lastSound<42)return;try{lastSound=performance.now();const o=audio.createOscillator(),g=audio.createGain();o.type='triangle';o.frequency.setValueAtTime(freq,audio.currentTime);o.frequency.exponentialRampToValueAtTime(freq*.68,audio.currentTime+duration);g.gain.setValueAtTime(volume,audio.currentTime);g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+duration);o.connect(g);g.connect(audio.destination);o.start();o.stop(audio.currentTime+duration)}catch{}}
 function vibrate(ms=10){if(vibrationOn&&navigator.vibrate)navigator.vibrate(ms)}
 function setStatus(){
+  renderDirty=true;
   all('[data-mode]').forEach(b=>b.classList.toggle('selected',b.dataset.mode===mode));
   all('[data-tool]').forEach(b=>{b.classList.toggle('selected',b.dataset.tool===tool);b.disabled=!!challenge?.tools&&!challenge.tools.includes(b.dataset.tool)});
   $('dock').classList.toggle('compact',mode!=='build');$('precisionPad').hidden=mode!=='build'||!precision;
@@ -86,7 +89,7 @@ function setStatus(){
   $('hint').textContent=mode==='camera'?(panCamera?'Táhni pro posun pohledu':'Táhni pro otáčení kamery'):mode==='erase'?'Vyber destičku a potvrď odebrání':'Dotykem posuň náhled';
   $('placementStatus').textContent=mode==='camera'?'Pohyb kamery':mode==='erase'?(selected?'Destička vybrána':'Vyber destičku'):'Náhled připraven';
   ghost.visible=mode==='build';marker.visible=mode==='build';selection.visible=mode==='erase'&&!!selected;
-  $('undo').disabled=!planks.length;$('place').disabled=mode==='erase'?!selected:mode==='build'&&(planks.length>=(challenge?.limit||MAX_PLANKS)||!candidate||candidate.blocked);
+  $('undo').disabled=!undoStack.length&&!planks.length;$('place').disabled=mode==='erase'?!selected:mode==='build'&&(planks.length>=(challenge?.limit||MAX_PLANKS)||!candidate||candidate.blocked);updateTutorial();
 }
 
 function addBody(data,disturb=false){const id=Number.isInteger(data.id)?data.id:++serial;serial=Math.max(serial,id);const body=createPlank(world,{...data,disturb});const mesh=new THREE.Mesh(plankGeometry,colorways[id%colorways.length]);mesh.castShadow=true;mesh.receiveShadow=true;mesh.userData.plankId=id;scene.add(mesh);const item={id,tool:data.tool||'flat',yaw:data.yaw||0,body,mesh};planks.push(item);body.addEventListener('collide',e=>{const speed=Math.abs(e.contact?.getImpactVelocityAlongNormal?.()||0);if(speed>.55)play(140+Math.min(120,speed*6),Math.min(.08,.03+speed*.007),.07)});syncMesh(item);renderer.shadowMap.needsUpdate=true;return item}
@@ -100,10 +103,13 @@ function makeScenario(){clearScene();const physics=createPhysics(challenge?.scen
   }
   renderer.shadowMap.needsUpdate=true;
 }
-function capture(){profiles[activeId]={pieces:planks.map(({id,tool,yaw,body})=>({id,tool,yaw,x:body.position.x,y:body.position.y,z:body.position.z,quaternion:[body.quaternion.x,body.quaternion.y,body.quaternion.z,body.quaternion.w]})),wonNow,shakePassed};}
+function snapshotPieces(){return planks.map(({id,tool,yaw,body})=>({id,tool,yaw,x:body.position.x,y:body.position.y,z:body.position.z,quaternion:[body.quaternion.x,body.quaternion.y,body.quaternion.z,body.quaternion.w]}))}
+function capture(){profiles[activeId]={pieces:snapshotPieces(),wonNow,shakePassed};}
+function rememberUndo(){undoStack.push({pieces:snapshotPieces(),wonNow,shakePassed});if(undoStack.length>12)undoStack.shift()}
+function undoAction(){if(shakeStart!==null)return;const previous=undoStack.pop();if(!previous){if(planks.length)removeItem(planks[planks.length-1]);else return}else{makeScenario();for(const piece of previous.pieces)addBody(piece);wonNow=previous.wonNow;shakePassed=previous.shakePassed;autoStack=null;selected=null;hold=0}dirty=true;renderDirty=true;setStatus();updatePreview();save();play(110);toast('Krok vrácen')}
 function save(){capture();try{localStorage.setItem(STORAGE,JSON.stringify({profiles,achievements,globalBest,activeId,snap,precision,sound:soundOn,vibration:vibrationOn}));dirty=false}catch{}}
 function loadProfile(){makeScenario();const state=profiles[activeId];if(state&&Array.isArray(state.pieces))for(const p of state.pieces.slice(0,challenge?.limit||MAX_PLANKS)){if([p.x,p.y,p.z].every(Number.isFinite)&&p.quaternion?.length===4&&p.quaternion.every(Number.isFinite))addBody(p)}
-  wonNow=!!state?.wonNow;shakePassed=!!state?.shakePassed;hold=0;shakeStart=null;shakeChecking=false;autoStack=null;selected=null;aim={x:0,z:0,y:0};tool='flat';angle=0;mode='build';panCamera=false;measure=measurements(planks.map(p=>p.body));fit();updatePreview();setStatus();updateHud(0);dirty=true;
+  wonNow=!!state?.wonNow;shakePassed=!!state?.shakePassed;hold=0;shakeStart=null;shakeChecking=false;autoStack=null;selected=null;aim={x:0,z:0,y:0};tool='flat';angle=0;mode='build';panCamera=false;undoStack=[];tutorialHidden=false;measure=measurements(planks.map(p=>p.body));fit();updatePreview();setStatus();updateHud(0);dirty=true;renderDirty=true;
 }
 function migrate(){if(Object.keys(profiles).length)return;try{const old=JSON.parse(localStorage.getItem('planko-v1')||'null');if(!old?.blocks?.length)return;profiles.sandbox={pieces:old.blocks.slice(0,MAX_PLANKS).map(b=>{const tool=b.tool||'flat',yaw=b.dir?Math.PI/2:0,q=orientation(tool,yaw);const hh=tool==='stand'?SIZE.length/2:tool==='edge'?SIZE.width/2:SIZE.thickness/2;return {id:b.id,tool,yaw,x:b.x*.325,y:b.y*.325+hh,z:b.z*.325,quaternion:[q.x,q.y,q.z,q.w]}})};activeId='sandbox';challenge=null}catch{}}
 function switchChallenge(id){save();activeId=id;challenge=challengeById(id);loadProfile();closeSheet();save();toast(challenge?.title||'Volné stavění')}
@@ -112,6 +118,7 @@ function setMode(next){mode=next;selected=null;autoStack=null;if(mode!=='camera'
 function overlap(a,b,c,d,t=.003){return Math.min(b,d)-Math.max(a,c)>t}
 function makeOBB(center,q,size=half){return new OBB(center,size.clone(),new THREE.Matrix3().setFromMatrix4(new THREE.Matrix4().makeRotationFromQuaternion(q)))}
 function updatePreview(){
+  renderDirty=true;
   if(mode!=='build'){ghost.visible=false;marker.visible=false;candidate=null;return}
   if(autoStack){const p=bodyById(autoStack);if(p&&Math.abs(p.body.position.x-aim.x)<.5&&Math.abs(p.body.position.z-aim.z)<.5)aim.y=bounds(p.body).hi.y;else autoStack=null}
   const q=threeQ(orientation(tool,angle*Math.PI/180));const local=plankGeometry.boundingBox.clone().applyMatrix4(tempMat.makeRotationFromQuaternion(q));
@@ -137,33 +144,37 @@ function updatePreview(){
 
 function pick(px,py){const r=viewport.getBoundingClientRect();pointer.set((px/r.width)*2-1,1-(py/r.height)*2);ray.setFromCamera(pointer,camera);return ray.intersectObjects([table,...supportMeshes.children.filter(o=>o.geometry&&o.position.y>.05),...planks.map(p=>p.mesh)],false)[0]||null;}
 function updateAim(px,py){const hit=pick(px,py);if(mode==='erase'){selected=hit?.object.userData.plankId||null;setStatus();return}if(!hit)return;let y=hit.point.y;const item=bodyById(hit.object.userData.plankId);if(item)y=bounds(item.body).hi.y;else if(hit.object!==table)y=BRIDGE.height;else y=0;const s=v=>snap?Math.round(v/GRID)*GRID:v;aim={x:clamp(s(hit.point.x),-3.9,3.9),z:clamp(s(hit.point.z),-3.9,3.9),y:Math.max(0,y)};autoStack=null;updatePreview()}
-function place(){if(mode==='camera'){setMode('build');return}if(mode==='erase'){const p=bodyById(selected);if(p){removeItem(p);play(110);vibrate();setStatus();toast('Destička odebrána')}return}updatePreview();if(!candidate||candidate.blocked||planks.length>=(challenge?.limit||MAX_PLANKS)||shakeStart!==null)return;
-  const p=addBody(candidate,true);autoStack=p.id;aim.y=bounds(p.body).hi.y;hold=0;shakePassed=false;wonNow=false;dirty=true;awaken(planks.map(p=>p.body));play(240,.035);vibrate();setStatus();
+function place(){if(mode==='camera'){setMode('build');return}if(mode==='erase'){const p=bodyById(selected);if(p){rememberUndo();removeItem(p);play(110);vibrate();setStatus();toast('Destička odebrána')}return}updatePreview();if(!candidate||candidate.blocked||planks.length>=(challenge?.limit||MAX_PLANKS)||shakeStart!==null)return;
+  rememberUndo();const p=addBody(candidate,challenge?.id!=='training');autoStack=p.id;aim.y=bounds(p.body).hi.y;hold=0;shakePassed=false;wonNow=false;dirty=true;awaken(planks.map(p=>p.body));play(240,.035);vibrate();setStatus();
 }
 function nudge(dir){if(mode!=='build')return;autoStack=null;const rightX=Math.cos(yaw),rightZ=-Math.sin(yaw),forwardX=-Math.sin(yaw),forwardZ=-Math.cos(yaw);const signs={up:[forwardX,forwardZ],down:[-forwardX,-forwardZ],left:[-rightX,-rightZ],right:[rightX,rightZ]};const [x,z]=signs[dir];aim.x=clamp(aim.x+x*UNIT,-3.9,3.9);aim.z=clamp(aim.z+z*UNIT,-3.9,3.9);updatePreview()}
 
-function showSheet(title,content){$('sheet').innerHTML=`<div class="sheet-head"><h2>${title}</h2><button class="sheet-close" id="sheetClose" aria-label="Zavřít">×</button></div>${content}`;$('modal').classList.add('open');$('sheetClose').onclick=closeSheet;}
+function showSheet(title,content){$('sheet').innerHTML=`<div class="sheet-head"><h2>${title}</h2><button class="sheet-close" id="sheetClose" aria-label="Zavřít">×</button></div>${content.replace('PLANKO Studio · verze 0.2.1','PLANKO Studio · verze 0.3.0')}`;$('sheet').scrollTop=0;$('modal').classList.add('open');$('sheetClose').onclick=closeSheet;}
 function closeSheet(){$('modal').classList.remove('open')}
+function showHome(){save();showSheet('PLANKO',homeMarkup(achievements,planks.length>0)+'<button id="privacy" class="privacy-link">Soukromí a informace o aplikaci</button>');$('homePlay').onclick=closeSheet;$('homeSandbox').onclick=()=>switchChallenge('sandbox');$('homeLevels').onclick=showCatalog;$('homeCampaign').onclick=()=>{const next=recommendedChallenge(achievements);next?switchChallenge(next.id):showCatalog()};$('privacy').onclick=showPrivacy}
+function showPrivacy(){showSheet('Soukromí',`<p>PLANKO funguje offline, nemá účty, reklamy ani analytiku. Hra neposílá tvé stavby, výsledky ani identifikační údaje na server.</p><p>Stavby, nastavení a výsledky se ukládají pouze do úložiště aplikace v telefonu. Vymazáním dat aplikace nebo odinstalací se mohou ztratit. Vibrace jsou volitelné; hra nepotřebuje přístup k poloze, kameře ani mikrofonu.</p><p>Vydavatel projektu: ALTIVOX · PLANKO Studio 0.3.0. Kontakt pro dotazy bude doplněn v informacích o vydavateli při publikaci.</p><button id="privacyBack" class="wide-btn secondary">Zpět do menu</button>`);$('privacyBack').onclick=showHome}
+function showResult(stars,m,previous){const next=nextChallenge(challenge.id);showSheet('Výzva splněna',resultMarkup(challenge,stars,m,previous));$('resultNext').onclick=()=>next?switchChallenge(next.id):showCatalog();$('resultKeep').onclick=closeSheet;$('resultLevels').onclick=showCatalog;}
+function updateTutorial(){const active=challenge?.id==='training'&&!wonNow&&!tutorialHidden&&mode==='build';$('tutorial').hidden=!active;$('place').classList.toggle('tutorial-highlight',active&&planks.length<3);if(!active)return;const count=planks.length;$('tutorialTitle').textContent=count===0?'1 · Polož první destičku':count<3?`${count+1} · Přidej další destičku`:'Hotovo! Teď vyčkej';$('tutorialText').textContent=count===0?'Zelený obrys ukazuje místo. Klepni na POLOŽIT.':count<3?'Náhled se přesune nahoru. Po dosednutí klepni znovu na POLOŽIT.':'Stavba musí zůstat v klidu dvě sekundy.';}
 function showCatalog(){const completed=CHALLENGES.filter(c=>achievements[c.id]).length;showSheet('Stavební výzvy',`<p>Vyber volné stavění nebo jednu z ${CHALLENGES.length} fyzikálních výzev. Každá stavba se ukládá zvlášť.</p><button class="sandbox-card" id="sandboxChoice"><span class="sandbox-icon">▱</span><div><b>Sandbox</b><small>Neomezené nápady · až ${MAX_PLANKS} destiček</small></div></button><h3>Výzvy · ${completed}/${CHALLENGES.length} splněno</h3><div class="card-list">${CHALLENGES.map(c=>`<button class="challenge-card ${achievements[c.id]?'done':''} ${activeId===c.id?'active':''}" data-challenge="${c.id}"><span class="challenge-icon">${achievements[c.id]?'✓':c.icon}</span><div><div class="challenge-meta"><b>${c.title}</b><span class="level">${c.level}</span></div><small>${c.description} · ${c.limit} dest.</small><span class="stars">${'★'.repeat(achievements[c.id]?.stars||0)}${'☆'.repeat(3-(achievements[c.id]?.stars||0))}</span></div></button>`).join('')}</div>`);$('sandboxChoice').onclick=()=>switchChallenge('sandbox');all('[data-challenge]').forEach(b=>b.onclick=()=>switchChallenge(b.dataset.challenge))}
 function showHelp(){showSheet('Ovládání',`<div class="help-row"><i>▱</i><div><b>Stavět</b><br>Dotkni se stolu nebo stavby a posuň náhled prstem. Destička se položí až po stisku POLOŽIT.</div></div><div class="help-row"><i>◎</i><div><b>Kamera</b><br>Přepni na Kamera, tažením otáčej. Křížek ✥ přepne posun. Dvěma prsty můžeš přibližovat v každém režimu.</div></div><div class="help-row"><i>⊞</i><div><b>Přesnost</b><br>Mřížka přichytává na 3,9 mm. Přesně zobrazí šipky po 1 mm. Otočení po 15°.</div></div><div class="help-row"><i>⊖</i><div><b>Odebrat</b><br>Vyber libovolnou stěnu destičky a potvrď odebrání.</div></div><div class="help-row"><i>≋</i><div><b>Test otřesem</b><br>Krátké zrychlení prověří stabilitu. Destičky mají skutečnou hmotnost, tření a kolize.</div></div><h3>Nastavení</h3><div class="settings-row"><span>Zvuk dřeva</span><button id="soundSwitch" class="switch ${soundOn?'on':''}">${soundOn?'Zapnuto':'Vypnuto'}</button></div><div class="settings-row"><span>Vibrace</span><button id="vibSwitch" class="switch ${vibrationOn?'on':''}">${vibrationOn?'Zapnuto':'Vypnuto'}</button></div><div class="empty-note">PLANKO Studio · verze 0.2.1 · ${renderer.isCanvas?'bezpečná 3D projekce':'WebGL'}</div>`);$('soundSwitch').onclick=()=>{soundOn=!soundOn;enableAudio();save();showHelp()};$('vibSwitch').onclick=()=>{vibrationOn=!vibrationOn;save();showHelp()}}
 function resetPrompt(){showSheet('Nová stavba?',`<p>Vymaže aktuální konstrukci. Rekordy, hvězdy a ostatní rozehrané výzvy zůstanou zachovány.</p><button id="resetYes" class="wide-btn danger">Začít znovu</button><button id="resetNo" class="wide-btn secondary">Pokračovat ve stavbě</button>`);$('resetYes').onclick=()=>{delete profiles[activeId];loadProfile();closeSheet();save()};$('resetNo').onclick=closeSheet}
 
-function runShake(){if(!planks.length){toast('Nejdřív něco postav.');return}if(shakeStart!==null)return;shakeStart=performance.now();shakeChecking=true;hold=0;shakePassed=false;awaken(planks.map(p=>p.body));$('shake').classList.add('active');$('shakeLabel').textContent='Probíhá otřes';vibrate(35);toast('Zkouška stability')}
+function runShake(){if(!planks.length){toast('Nejdřív něco postav.');return}if(shakeStart!==null)return;rememberUndo();shakeStart=performance.now();shakeChecking=true;hold=0;shakePassed=false;awaken(planks.map(p=>p.body));$('shake').classList.add('active');$('shakeLabel').textContent='Probíhá otřes';vibrate(35);toast('Zkouška stability')}
 function updateHud(dt){const m=measure;let limit=challenge?.limit||MAX_PLANKS;$('count').innerHTML=`${m.count} <i>/ ${limit}</i>`;$('height').innerHTML=`${fmt(m.height)} <i>cm</i>`;$('best').innerHTML=`${fmt(globalBest)} <i>cm</i>`;
-  $('physicsStatus').textContent=shakeStart!==null?'≋ Test stability':m.stable?'● Stavba v klidu':'● Probíhá simulace';$('undo').disabled=!planks.length;
+  $('physicsStatus').textContent=shakeStart!==null?'≋ Test stability':m.stable?'● Stavba v klidu':'● Probíhá simulace';$('undo').disabled=(!planks.length&&!undoStack.length)||shakeStart!==null;
   if(!challenge)return;
   const ev=evaluate(challenge,m,{shakePassed});let qualified=ev.qualified&&m.stable&&shakeStart===null;
   if(qualified)hold+=dt;else hold=0;
   $('progress').style.width=`${Math.min(100,ev.progress*100)}%`;
   $('objectiveStatus').textContent=wonNow?'SPLNĚNO':qualified?`VYDRŽ ${Math.max(0,Math.ceil(challenge.hold-hold))} S`:'STAVÍŠ';
   $('objectiveText').textContent=wonNow?'✓ '+challenge.description:ev.detail;
-  if(qualified&&hold>=challenge.hold&&!wonNow){wonNow=true;const stars=m.count<=challenge.min+1?3:m.count<=challenge.limit*.75?2:1;const old=achievements[challenge.id];achievements[challenge.id]={stars:Math.max(stars,old?.stars||0),bestCount:Math.min(m.count,old?.bestCount||Infinity),height:Math.max(m.height,old?.height||0)};play(440,.065,.15);vibrate([45,60,45]);toast(`Výzva splněna! ${'★'.repeat(stars)}`);save()}
+  if(qualified&&hold>=challenge.hold&&!wonNow){wonNow=true;const stars=rating(challenge,m.count);const old=achievements[challenge.id];achievements[challenge.id]={stars:Math.max(stars,old?.stars||0),bestCount:Math.min(m.count,old?.bestCount||Infinity),height:Math.max(m.height,old?.height||0)};play(440,.065,.15);vibrate([45,60,45]);toast(`Výzva splněna! ${'★'.repeat(stars)}`);updateTutorial();save();if(!$('modal').classList.contains('open'))showResult(stars,m,old?.stars)}
 }
 
-$('catalog').onclick=showCatalog;$('help').onclick=showHelp;$('modal').onclick=e=>{if(e.target===$('modal'))closeSheet()};$('reset').onclick=resetPrompt;
+$('home').onclick=showHome;$('catalog').onclick=showCatalog;$('help').onclick=showHelp;$('modal').onclick=e=>{if(e.target===$('modal'))closeSheet()};$('reset').onclick=resetPrompt;$('tutorialSkip').onclick=()=>{tutorialHidden=true;updateTutorial()};
 all('[data-mode]').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));all('[data-tool]').forEach(b=>b.onclick=()=>{tool=b.dataset.tool;updatePreview();setStatus()});
 function rotate(delta){angle=(angle+delta+360)%360;updatePreview();$('angle').textContent=`${angle}°`}
-$('rotateLeft').onclick=()=>rotate(-15);$('rotateRight').onclick=()=>rotate(15);$('place').onclick=()=>{enableAudio();place()};$('undo').onclick=()=>{if(planks.length){removeItem(planks[planks.length-1]);wonNow=false;setStatus();play(110);}};
+$('rotateLeft').onclick=()=>rotate(-15);$('rotateRight').onclick=()=>rotate(15);$('place').onclick=()=>{enableAudio();place()};$('undo').onclick=undoAction;
 $('snap').onclick=()=>{snap=!snap;if(snap){aim.x=Math.round(aim.x/GRID)*GRID;aim.z=Math.round(aim.z/GRID)*GRID}updatePreview();setStatus();save()};$('precisionToggle').onclick=()=>{precision=!precision;setStatus();save()};all('[data-nudge]').forEach(b=>b.onclick=()=>nudge(b.dataset.nudge));
 $('zoomIn').onclick=()=>zoom(.82);$('zoomOut').onclick=()=>zoom(1.22);$('fit').onclick=fit;$('pan').onclick=()=>{if(mode!=='camera')setMode('camera');panCamera=!panCamera;setStatus()};$('shake').onclick=runShake;$('reload').onclick=()=>location.reload();
 
@@ -186,15 +197,15 @@ let last=performance.now(),hudTime=0,saveTime=0,stableTime=0;
 function frame(now){const dt=Math.min(.05,Math.max(0,(now-last)/1000));last=now;
   if(shakeStart!==null){const elapsed=(now-shakeStart)/1000;if(elapsed<=1.2){shakeGravity(world,elapsed);awaken(planks.map(p=>p.body))}else{shakeStart=null;resetGravity(world);$('shake').classList.remove('active');$('shakeLabel').textContent='Test otřesem';toast('Čekám, až se stavba ustálí')}}
   step(world,dt);let moved=false;for(const p of [...planks]){if(p.body.position.y<-2.5||Math.abs(p.body.position.x)>11||Math.abs(p.body.position.z)>11){removeItem(p);continue}syncMesh(p);if(p.body.velocity.length()>.025||p.body.angularVelocity.length()>.035)moved=true}
-  if(moved){renderer.shadowMap.needsUpdate=true;dirty=true}
-  updatePreview();const s=bodyById(selected);if(mode==='erase'&&s){selection.visible=true;selection.position.copy(s.mesh.position);selection.quaternion.copy(s.mesh.quaternion)}else selection.visible=false;
+  if(moved){renderer.shadowMap.needsUpdate=true;dirty=true;renderDirty=true}
+  if(moved||lastMoving||renderDirty)updatePreview();lastMoving=moved;const s=bodyById(selected);if(mode==='erase'&&s){selection.visible=true;selection.position.copy(s.mesh.position);selection.quaternion.copy(s.mesh.quaternion)}else selection.visible=false;
   hudTime+=dt;saveTime+=dt;
-  if(hudTime>=.12){measure=measurements(planks.map(p=>p.body));stableTime=measure.stable?stableTime+hudTime:0;
+  if(hudTime>=.12){const bodies=planks.map(p=>p.body);measure=measurements(bodies);if(challenge?.connected)measure.connected=connectedMeasurements(bodies);stableTime=measure.stable?stableTime+hudTime:0;
     if(stableTime>.7&&measure.height>globalBest+.05){globalBest=measure.height;dirty=true}
     if(shakeChecking&&shakeStart===null&&stableTime>1.1){shakeChecking=false;shakePassed=challenge?.shake?measure.height>=challenge.height-.05&&measure.count>=challenge.min:true;toast(shakePassed?'Test dokončen – stabilní':'Stavba nevydržela');dirty=true}
     updateHud(hudTime);hudTime=0;
   }
   if(saveTime>1.5){if(dirty)save();saveTime=0}
-  if(renderer.isCanvas)renderer.renderGame({camera,table,grid,planks,ghost,selection,marker,supportMeshes,size:{...SIZE,table:TABLE},blocked:candidate?.blocked});else renderer.render(scene,camera);requestAnimationFrame(frame);
+  if(renderDirty&&now-lastRender>=(renderer.isCanvas?32:15)){if(renderer.isCanvas)renderer.renderGame({camera,table,grid,planks,ghost,selection,marker,supportMeshes,size:{...SIZE,table:TABLE},blocked:candidate?.blocked});else renderer.render(scene,camera);lastRender=now;renderDirty=false;}requestAnimationFrame(frame);
 }
-migrate();loadProfile();resize();setStatus();document.documentElement.dataset.ready='true';requestAnimationFrame(frame);
+migrate();loadProfile();resize();setStatus();showHome();document.documentElement.dataset.ready='true';requestAnimationFrame(frame);

@@ -84,6 +84,17 @@ export function measurements(bodies) {
     foundation,bridge,energy,stable:energy<.09 };
 }
 
+// Connected-component scoring: a pile scattered across the table must not count
+// as a single wide or tall building. The tolerance is about two millimetres.
+export function connectedMeasurements(bodies) {
+  const boxes=bodies.map(bounds), parents=bodies.map((_,i)=>i), root=i=>{while(parents[i]!==i){parents[i]=parents[parents[i]];i=parents[i]}return i};
+  const gap=(a,b,axis)=>Math.max(a.lo[axis]-b.hi[axis],b.lo[axis]-a.hi[axis]);
+  for(let i=0;i<boxes.length;i++)for(let j=i+1;j<boxes.length;j++)if(['x','y','z'].every(a=>gap(boxes[i],boxes[j],a)<.023))parents[root(j)]=root(i);
+  const groups=new Map();for(let i=0;i<bodies.length;i++){const r=root(i);if(!groups.has(r))groups.set(r,[]);groups.get(r).push(bodies[i])}
+  const largest=[...groups.values()].sort((a,b)=>b.length-a.length)[0]||[];
+  const m=measurements(largest);return {componentCount:largest.length,height:m.height,span:m.span,foundation:m.foundation};
+}
+
 export function awaken(bodies) { for(const b of bodies)b.wakeUp(); }
 export function shakeGravity(world, elapsed) { world.gravity.x = 21*Math.sin(elapsed*19) * Math.max(0,1-elapsed/1.2); world.gravity.z = 12*Math.sin(elapsed*13) * Math.max(0,1-elapsed/1.2); }
 export function resetGravity(world) { world.gravity.set(0,-GRAVITY,0); }
