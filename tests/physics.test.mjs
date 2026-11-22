@@ -12,7 +12,7 @@ test('true 1:3:15 dimensions and scaled gravity',()=>{
   const {world}=createPhysics();close(world.gravity.y,-98.0665,.00001);
   const plank=createPlank(world,{y:.18});assert.ok(plank.mass>.009&&plank.mass<.012);
   settle(world);close(plank.position.y,SIZE.thickness/2);
-  assert.ok(measurements([plank]).stable);
+  assert.ok(measurements([plank]).stable,`resting velocity: ${plank.velocity.toString()}, angular: ${plank.angularVelocity.toString()}, sleep: ${plank.sleepState}`);
 });
 
 test('real collision stack falls when support disappears',()=>{

@@ -125,7 +125,7 @@ function updatePreview(){
   for(const body of near){const {lo,hi}=bounds(body);const close=overlap(position.y+local.min.y,position.y+local.max.y,lo.y,hi.y,.001);
     if(body.mass<=0){if(close){blocked=true;reason='Náhled koliduje s podstavcem';break}continue}
     if(close&&obb.intersectsOBB(makeOBB(vec(body.position),threeQ(body.quaternion)))){blocked=true;reason='Náhled koliduje';break}
-    if(Math.abs(hi.y-surface)<.03&&(body.velocity.length()>.075||body.angularVelocity.length()>.12)){blocked=true;reason='Počkej na dosednutí'}
+    if(Math.abs(hi.y-surface)<.03&&(body.velocity.length()>.12||body.angularVelocity.length()>.34)){blocked=true;reason='Počkej na dosednutí'}
   }
   candidate={x,y:position.y,z,q,blocked,reason,tool,yaw:angle*Math.PI/180};ghost.position.copy(position);ghost.quaternion.copy(q);ghost.visible=true;ghostMat.color.set(blocked?'#d78e79':'#7db485');ghostLine.material.color.set(blocked?'#b95e41':'#396b46');marker.position.set(x,surface+.014,z);marker.visible=true;
   $('placementStatus').textContent=reason||`Náhled · ${fmt(surface*10)} cm`;const limit=challenge?.limit||MAX_PLANKS;$('place').disabled=blocked||planks.length>=limit||shakeStart!==null;
