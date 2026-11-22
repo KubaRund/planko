@@ -23,6 +23,11 @@ test('real collision stack falls when support disappears',()=>{
   close(top.position.y,SIZE.thickness/2);
 });
 
+test('three flat planks form a sustainable beginner stack',()=>{
+  const {world}=createPhysics();const bodies=[];for(let i=0;i<3;i++){const top=i?bounds(bodies[i-1]).hi.y:0;const center=i?bodies[i-1].position:{x:0,z:0};bodies.push(createPlank(world,{x:center.x,z:center.z,y:top+SIZE.thickness/2+.003}));for(const b of bodies)b.wakeUp();settle(world,1.3);}
+  settle(world,8);const m=measurements(bodies);m.connected=connectedMeasurements(bodies);assert.ok(evaluate(challengeById('training'),m).qualified,JSON.stringify(m));assert.ok(m.stable,JSON.stringify(m));
+});
+
 test('an off-balance upright does not remain mathematically frozen',()=>{
   const {world}=createPhysics();const tilt=new Quaternion();tilt.setFromAxisAngle(new Vec3(0,0,1),.23);
   const q=orientation('stand').mult(tilt);const piece=createPlank(world,{y:.79,tool:'stand',quaternion:[q.x,q.y,q.z,q.w]});

@@ -6,7 +6,7 @@ Jedna simulační jednotka je 10 cm. Destička má rozměry 1,17 × 0,234 × 0,0
 
 ## Řešení kontaktů
 
-`cannon-es` představuje každou destičku nezávislým tuhým tělesem se šestí stupni volnosti. Těleso má kvádrový tvar, hmotnost, setrvačnost, lineární a úhlovou rychlost. Fyzikální svět používá SAP broadphase, Gauss-Seidelův řešič (28 iterací), integraci ve fixním kroku 1/120 s a kontaktové materiály. Tření dřevo–dřevo je nastavené na 0,52, dřevo–stůl 0,62 a restituci 0,035. Hodnoty jsou laděné herní parametry, nikoli laboratorní měření konkrétního výrobku.
+`cannon-es` představuje každou destičku nezávislým tuhým tělesem se šestí stupni volnosti. Těleso má kvádrový tvar, hmotnost, setrvačnost, lineární a úhlovou rychlost. Fyzikální svět používá SAP broadphase, Gauss-Seidelův řešič (48 iterací pro menší stavby, 28 pro větší), integraci ve fixním kroku 1/240 s a kontaktové materiály. Tření dřevo–dřevo je nastavené na 0,52, dřevo–stůl 0,62 a restituci 0,01. Hodnoty jsou laděné herní parametry, nikoli laboratorní měření konkrétního výrobku.
 
 Při položení je k přesnému náhledu přidána velmi malá poziční a úhlová odchylka analogická ručnímu položení. Volně padající destičky se mohou otáčet kolem libovolných os; nejsou po pádu nuceny do předem definovaných pozic. Šestistupňová fyzika umožňuje přirozený pád, sklouznutí, převrácení a řetězovou reakci při ztrátě opory.
 

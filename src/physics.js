@@ -5,7 +5,7 @@ export const SIZE = Object.freeze({ length: 1.17, width: .234, thickness: .078 }
 export const CM_PER_UNIT = 10;
 export const TABLE = 8;
 export const GRAVITY = 98.0665;
-export const STEP = 1 / 120;
+export const STEP = 1 / 240;
 export const MAX_PLANKS = 180;
 export const BRIDGE = Object.freeze({ x: .72, width: .52, height: .50, depth: 1.25, gap: .92 });
 const wood = new Material('pine');
@@ -16,11 +16,11 @@ const mid = (a,b)=>(a+b)/2;
 export function createPhysics(bridge = false) {
   const world = new World({ gravity: new Vec3(0, -GRAVITY, 0), allowSleep: true });
   world.broadphase = new SAPBroadphase(world);
-  world.solver.iterations = 28;
+  world.solver.iterations = 48;
   // Tiny wooden pieces have small impulses; a relative-looking default tolerance
   // can stop Gauss-Seidel too early and leave resting contacts chattering.
   world.solver.tolerance = 1e-7;
-  const contact = { friction: .52, restitution: .035, contactEquationStiffness: 1e7, contactEquationRelaxation: 4,
+  const contact = { friction: .52, restitution: .01, contactEquationStiffness: 1e7, contactEquationRelaxation: 4,
     frictionEquationStiffness: 1e7, frictionEquationRelaxation: 4 };
   Object.assign(world.defaultContactMaterial, contact);
   world.addContactMaterial(new ContactMaterial(wood, wood, contact));
@@ -52,7 +52,7 @@ export function createPlank(world, { x=0,y=0,z=0,tool='flat',yaw=0,quaternion,di
   // 500 kg/m³ pine reference density; mass is approximately 10.7 g.
   const mass = 500 * (SIZE.length/10) * (SIZE.width/10) * (SIZE.thickness/10);
   const body = new Body({ mass, material: wood, shape: new Box(half.clone()), position: new Vec3(x,y,z),
-    linearDamping:.07, angularDamping:.12, allowSleep:true, sleepSpeedLimit:.10, sleepTimeLimit:1.3 });
+    linearDamping:.18, angularDamping:.26, allowSleep:true, sleepSpeedLimit:.10, sleepTimeLimit:1.3 });
   const q=quaternion ? new Quaternion(...quaternion) : orientation(tool,yaw);
   if (disturb) {
     // Tiny hand-placement error makes needle-like towers sensitive, rather than mathematically perfect.
@@ -98,4 +98,4 @@ export function connectedMeasurements(bodies) {
 export function awaken(bodies) { for(const b of bodies)b.wakeUp(); }
 export function shakeGravity(world, elapsed) { world.gravity.x = 21*Math.sin(elapsed*19) * Math.max(0,1-elapsed/1.2); world.gravity.z = 12*Math.sin(elapsed*13) * Math.max(0,1-elapsed/1.2); }
 export function resetGravity(world) { world.gravity.set(0,-GRAVITY,0); }
-export function step(world,dt) { world.step(STEP,Math.min(dt,.05),8); }
+export function step(world,dt) { world.solver.iterations=world.bodies.length>70?28:48;world.step(STEP,Math.min(dt,.05),12); }

@@ -131,7 +131,7 @@ function updatePreview(){
       if(hi.y<=aim.y+.21)surface=Math.max(surface,hi.y);near.push(body);
     }
   }
-  const position=new THREE.Vector3(x,surface-local.min.y+.009,z),obb=makeOBB(position,q);let blocked=false,reason='';
+  const position=new THREE.Vector3(x,surface-local.min.y+.003,z),obb=makeOBB(position,q);let blocked=false,reason='';
   if(x+local.min.x<-TABLE/2||x+local.max.x>TABLE/2||z+local.min.z<-TABLE/2||z+local.max.z>TABLE/2){blocked=true;reason='Mimo stůl'}
   for(const body of near){const {lo,hi}=bounds(body);const close=overlap(position.y+local.min.y,position.y+local.max.y,lo.y,hi.y,.001);
     if(body.mass<=0){if(close){blocked=true;reason='Náhled koliduje s podstavcem';break}continue}

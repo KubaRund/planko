@@ -65,7 +65,7 @@ Pokud chceš hru zkoušet v prohlížeči, po `npm run build` spusť `node tests
 | --- | --- |
 | Android | Java Activity, lokální WebView, systémové lišty spravované Androidem; zotavení po pádu rendereru |
 | Grafika | Three.js, Canvas 3D perspektivní projekce na Androidu, WebGL v prohlížeči |
-| Fyzika | cannon-es, 120 Hz, kolizní materiály a rigid-body dynamika |
+| Fyzika | cannon-es, 240 Hz, kolizní materiály a rigid-body dynamika |
 | Náhled | Raycaster + OBB, samostatná interakční vrstva |
 | Výzvy | `src/challenges.js`, měření stabilního objektu a hvězdy |
 | Ukládání | localStorage, profil pro každý režim; starý sandbox se migruje do nové simulace |
