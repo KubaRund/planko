@@ -6,3 +6,7 @@ local.properties
 *.apk
 *.aab
 *.jks
+node_modules/
+app/src/main/assets/game.js
+test-results/
+playwright-report/

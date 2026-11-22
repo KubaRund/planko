@@ -1,61 +1,79 @@
-# PLANKO · v0.1.1 🪵
+# PLANKO Studio · v0.2.0 🪵
 
-**Stavěj. Zkoušej. Tvoř.** PLANKO je mobilní stavební hra inspirovaná jednoduchými dřevěnými destičkami v poměru 1 : 3 : 15. Bez reklam, účtů a internetu.
+Digitální dřevěná stavebnice pro Android. Stav pomocí skutečně padajících a otáčejících se destiček, nebo zkoušej deset různých stavebních úloh. Bez reklam, účtů a internetu.
 
-## Hratelný prototyp
+## Nové ovládání
 
-* Klepnutím na stavební plochu nebo vrchní stěnu destičky polož další destičku.
-* Vyber naplocho, na hranu, nebo nastojato; otočením přepneš směr o 90°.
-* Tažením otáčej 3D kameru, dvěma prsty přibližuj.
-* Destičky padají, hledají podporu a při špatném vyvážení se mohou převrátit.
-* Odebrání podporující destičky způsobí pád destiček nad ní.
-* Sandbox má až 180 destiček. Výzva: věž 35 cm z maximálně 18 destiček.
-* Hra automaticky ukládá stavbu a výškový rekord na zařízení.
-
-## Jak spustit
-
-### Android
-
-1. Otevři záložku **Actions** a workflow „Sestavení Android APK“.
-2. Po úspěšném běhu stáhni artefakt **PLANKO-Android-v0.1.1**.
-3. Rozbal ZIP, otevři `app-debug.apk` na telefonu a nainstaluj aplikaci. Jde o testovací sestavení, ne publikaci v Google Play.
-
-Lokální sestavení: Android SDK 35, JDK 17 a Gradle 8.9. V kořeni projektu spusť `gradle :app:assembleDebug`. Výstup je `app/build/outputs/apk/debug/app-debug.apk`.
-
-### Prohlížeč (bez instalace)
-
-Stáhni [index.html](app/src/main/assets/index.html) a otevři ho v moderním prohlížeči. Všechny herní zdroje jsou v jediném souboru; nejsou potřeba server ani knihovny.
-
-## Technický návrh
-
-| Část | Implementace |
+| Režim / ovládací prvek | Funkce |
 | --- | --- |
-| Android | Java Activity + lokální WebView |
-| Vykreslování | Canvas 2D, vlastní ortografická 3D projekce |
-| Fyzika | Diskrétní gravitace, osově orientované kolize, detekce podpory a zjednodušeného těžiště |
-| Ovládání | Pointer Events (dotyk, myš, pinch zoom) |
-| Ukládání | localStorage, pouze lokální data |
-| Sestavení | Gradle a GitHub Actions |
+| **Stavět** | Dotykem nebo tažením umísti průhledný náhled. Samotný dotyk žádnou destičku nepoloží. |
+| **POLOŽIT** | Potvrď přesné umístění náhledu. |
+| **Kamera** | Jedním prstem otáčej kameru. Křížek přepne panování. |
+| **Dvěma prsty** | Otáčej a přibližuj kameru v každém režimu. |
+| **Odebrat** | Vyber destičku z jakékoliv strany a potvrď odstranění. |
+| **Přesně** | Čtyři šipky pro jemné posuny po 1 mm. |
+| **Mřížka** | Volitelné přichycení k 3,9mm mřížce. |
+| **Otočení** | Oběma směry po 15°; naplocho, na hranu, nastojato. |
+| **Test otřesem** | Zkušební vodorovné zrychlení a vyhodnocení ustálení. |
 
-### Známé limity prototypu
+Náhled při kolizi zčervená, při správné pozici zezelená. Kamera a stavění mají samostatné režimy, takže pohyb kamery nemůže vytvořit nechtěnou destičku. Android systémové pruhy jsou odečtené v nativní části.
 
-Nejde zatím o plnohodnotný engine tuhých těles: tření a impulzní kolize nejsou dynamicky simulovány; převrácení je aproximováno animací a následným pádem. Destičky mají diskrétní orientace a poloha se zarovnává do mřížky. Výškové jednotky jsou herní.
+## Obsah
 
-## Roadmapa
+* Sandbox: 180 destiček, volné stavění, automatické ukládání.
+* 10 výzev s různými podmínkami, hodnocením od jedné do tří hvězd a samostatnými uloženými stavbami.
+* 3D grafika s přirozeným světlem, stíny, texturou dřeva a lehce zaoblenými hranami.
+* Skutečný rigid-body engine: hmotnost, setrvačnost, tření, rotace, skluz a kolize.
+* Výškové rekordy v centimetrech, fyzicky přepočtené rozměry destičky (117 × 23,4 × 7,8 mm).
 
-- [x] Samostatná 3D stavební plocha
-- [x] Tři orientace destiček, rotace a kamera
-- [x] Gravitace, podpora, převracení, odebrání
-- [x] Sandbox, výzva, rekord a autosave
-- [x] Android projekt a CI konfigurace
-- [ ] Otestovat APK na fyzickém Android zařízení
-- [ ] Přesnější rigid-body fyzika a tření
-- [ ] Více výzev, šablony staveb a galerie
-- [ ] Export vlastních projektů
+### Výzvy
 
-PLANKO je nezávislý herní projekt a není oficiální aplikací žádné značky stavebnice.
+1. První konstrukce — 5 cm, alespoň 4 destičky.
+2. Věž 20 — stabilní výška 20 cm.
+3. Most přes propast — překlenutí 9,2 cm dvěma souběžnými nosníky.
+4. Poctivé vrstvy — 15 cm bez stavění nastojato.
+5. Méně je více — 25 cm z maximálně 12 destiček.
+6. Architektura — konstrukce široká 25 cm a vysoká 8 cm.
+7. Zátěžová zkouška — věž, která vydrží simulovaný otřes.
+8. Úzká základna — 22 cm, maximálně dva prvky u podlahy.
+9. Obří věž — 45 cm.
+10. Mistr stavebník — 25 cm do výšky, 30 cm do šířky a nejméně 18 destiček.
 
-## Historie verzí
+## Stažení a sestavení
 
-- **0.1.1** — větší destičky na telefonu, sledování růstu věže kamerou, ochrana před překrýváním při rychlém pokládání, rozšířený test pokládání a vykreslování.
-- **0.1.0** — první hratelný prototyp, Android aplikace a automatické sestavení.
+V záložce [Actions](https://github.com/KubaRund/planko/actions) vyber poslední úspěšný běh „Sestavení Android APK“, stáhni artefakt **PLANKO-Android-v0.2.0**, rozbal ZIP a nainstaluj `app-debug.apk`. Testovací APK není publikované v Google Play.
+
+Lokálně (Node.js 22, Android SDK 35, JDK 17 a Gradle 8.9):
+
+```sh
+npm install
+npm test
+npm run build
+gradle :app:assembleDebug
+```
+
+Výstup: `app/build/outputs/apk/debug/app-debug.apk`. Sestavený herní balíček se vkládá do APK; runtime nemá internetové oprávnění a závislosti se nestahují za běhu.
+
+Pokud chceš hru zkoušet v prohlížeči, po `npm run build` spusť `node tests/serve.mjs` a otevři `http://127.0.0.1:4173`. Testy ovládání: `npx playwright install chromium`, `npm run test:ui`.
+
+## Architektura
+
+| Část | Technologie |
+| --- | --- |
+| Android | Java Activity, FrameLayout s nativními insets a lokální WebView |
+| Grafika | Three.js, procedurální textury a WebGL stíny |
+| Fyzika | cannon-es, 120 Hz, kolizní materiály a rigid-body dynamika |
+| Náhled | Raycaster + OBB, samostatná interakční vrstva |
+| Výzvy | `src/challenges.js`, měření stabilního objektu a hvězdy |
+| Ukládání | localStorage, profil pro každý režim; starý sandbox se migruje do nové simulace |
+| Testy | Node a Chromium v mobilním rozlišení; GitHub Actions |
+
+Podrobný popis: [fyzika, jednotky a stabilita](docs/PHYSICS.md).
+
+## Vývoj
+
+- **0.2.0** — skutečná 3D fyzika, vizuál, kompletní změna ovládání podle zpětné vazby z telefonu, katalog deseti výzev, test otřesem, nové ukládání a systémové insets.
+- **0.1.1** — mobilní prototyp s aproximovanou fyzikou a testovacím APK.
+- **0.1.0** — první hratelné vydání.
+
+Další možné kroky: ladění solveru na reálném telefonu, šablony staveb, galerie, více typů úloh a export staveb. Simulace není laboratorní ani inženýrské měření. PLANKO je nezávislý projekt, nikoliv oficiální aplikace výrobce dřevěné stavebnice.

@@ -10,6 +10,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Instalace 3D a fyziky
+        run: npm install --no-audit --no-fund
+      - name: Fyzikální testy
+        run: npm test
+      - name: Sestavení herního balíčku
+        run: npm run build
+      - name: Instalace Chromium pro test herního UI
+        run: npx playwright install --with-deps chromium
+      - name: Test ovládání v mobilním rozlišení
+        run: npm run test:ui
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: PLANKO-UI-testy
+          path: test-results/
+          if-no-files-found: ignore
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -17,11 +36,9 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-      - name: Herní testy
-        run: node tests/game.test.cjs
       - name: Sestavení debug APK
         run: gradle --no-daemon :app:assembleDebug
       - uses: actions/upload-artifact@v4
         with:
-          name: PLANKO-Android-v0.1.1
+          name: PLANKO-Android-v0.2.0
           path: app/build/outputs/apk/debug/app-debug.apk
